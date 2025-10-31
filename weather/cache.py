@@ -2,62 +2,32 @@ import json
 import os
 from datetime import datetime, timedelta
 
-class WeatherCache:
-    def __init__(self, cache_file: str = "weather_cache.json"):
-        self.cache_file = cache_file
-        self.cache_duration = timedelta(hours=1)  # Кэшируем на 1 час
-    
-    def _load_cache(self) -> dict:
-        """Загрузить кэш из файла"""
-        if os.path.exists(self.cache_file):
-            try:
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return {}
+CACHE_FILE = "weather_cache.json"
+CACHE_TTL = timedelta(minutes=10)
+
+def _load_cache():
+    if not os.path.exists(CACHE_FILE):
         return {}
-    
-    def _save_cache(self, cache: dict):
-        """Сохранить кэш в файл"""
-        try:
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
-                json.dump(cache, f, ensure_ascii=False, indent=2)
-        except IOError as e:
-            print(f"Ошибка сохранения кэша: {e}")
-    
-    def get(self, key: str) -> dict | None:
-        """Получить данные из кэша"""
-        cache = self._load_cache()
-        
-        if key in cache:
-            cached_data = cache[key]
-            cache_time = datetime.fromisoformat(cached_data['timestamp'])
-            
-            if datetime.now() - cache_time < self.cache_duration:
-                return cached_data['data']
-            else:
-                # Удалить просроченные данные
-                del cache[key]
-                self._save_cache(cache)
-        
-        return None
-    
-    def set(self, key: str, data: dict):
-        """Сохранить данные в кэш"""
-        cache = self._load_cache()
-        
-        cache[key] = {
-            'timestamp': datetime.now().isoformat(),
-            'data': data
-        }
-        
-        self._save_cache(cache)
-    
-    def generate_key(self, latitude: float = None, longitude: float = None, city: str = None) -> str:
-        """Сгенерировать ключ для кэша"""
-        if city:
-            return f"city_{city.lower()}"
-        elif latitude is not None and longitude is not None:
-            return f"coords_{round(latitude, 2)}_{round(longitude, 2)}"
-        else:
-            raise ValueError("Должны быть указаны либо город, либо координаты")
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def _save_cache(cache):
+    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
+def get_from_cache(key):
+    cache = _load_cache()
+    if key in cache:
+        record = cache[key]
+        timestamp = datetime.fromisoformat(record["time"])
+        if datetime.now() - timestamp < CACHE_TTL:
+            return record["data"]
+    return None
+
+def save_to_cache(key, data):
+    cache = _load_cache()
+    cache[key] = {"data": data, "time": datetime.now().isoformat()}
+    _save_cache(cache)
