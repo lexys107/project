@@ -1,16 +1,30 @@
 import argparse
 
 def create_parser():
-    parser = argparse.ArgumentParser(description="Показ погоды по названию города или координатам.")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    # Получение погоды по городу
-    city_parser = subparsers.add_parser("city", help="Показ погоды по названию города")
-    city_parser.add_argument("name", help="Название города")
-
-    # Получение погоды по координатам
-    coords_parser = subparsers.add_parser("coords", help="Показ погоды по координатам")
-    coords_parser.add_argument("lat", type=float, help="Широта")
-    coords_parser.add_argument("lon", type=float, help="Долгота")
-
+    """Создает парсер аргументов командной строки"""
+    parser = argparse.ArgumentParser(
+        description='Получение текущей погоды',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Примеры использования:
+  python main.py --city "Москва"
+  python main.py --coords 55.7558 37.6173
+  python main.py -c "Лондон"
+        '''
+    )
+    
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        '--city', '-c',
+        type=str,
+        help='Название города (например: "Москва")'
+    )
+    group.add_argument(
+        '--coords', 
+        nargs=2,
+        type=float,
+        metavar=('LATITUDE', 'LONGITUDE'),
+        help='Координаты (например: 55.7558 37.6173)'
+    )
+    
     return parser
